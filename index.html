@@ -1,1128 +1,590 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Magia — Client Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Magia — Studio Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=Raleway:wght@200;300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg:        #0F0F0D;
-    --surface:   #161614;
-    --card:      #1C1C19;
-    --border:    #2A2A26;
-    --bronze:    #A67C3C;
-    --bronze-dim:#6B5025;
-    --cream:     #F0EBE0;
-    --muted:     #6B6860;
-    --green:     #4E6F4D;
-    --green-light:#7A9B74;
-    --mauve:     #C0A3B6;
-    --sage:      #8A9E7A;
-    --urgent:    #8B3030;
-    --urgent-bg: #1A0F0F;
-    --done:      #2A4A2A;
-    --done-text: #7FB87F;
-  }
-
-  * { margin:0; padding:0; box-sizing:border-box; }
-
-  body {
-    background: var(--bg);
-    color: var(--cream);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 300;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-
-  /* ── GRAIN OVERLAY ── */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 0;
-    opacity: 0.4;
-  }
-
-  /* ── LAYOUT ── */
-  .app { display: flex; min-height: 100vh; position: relative; z-index: 1; }
-
-  /* ── SIDEBAR ── */
-  .sidebar {
-    width: 260px;
-    min-width: 260px;
-    background: var(--surface);
-    border-right: 1px solid var(--border);
-    display: flex;
-    flex-direction: column;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
-  }
-
-  .sidebar-header {
-    padding: 32px 24px 24px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .logo {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 26px;
-    font-weight: 400;
-    color: var(--cream);
-    letter-spacing: 0.05em;
-    margin-bottom: 2px;
-  }
-
-  .logo-sub {
-    font-size: 9px;
-    font-weight: 400;
-    letter-spacing: 0.25em;
-    color: var(--bronze);
-    text-transform: uppercase;
-  }
-
-  .sidebar-section {
-    padding: 20px 24px 8px;
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    text-transform: uppercase;
-  }
-
-  .client-item {
-    margin: 2px 12px;
-    padding: 12px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 1px solid transparent;
-  }
-
-  .client-item:hover { background: var(--card); border-color: var(--border); }
-
-  .client-item.active {
-    background: var(--card);
-    border-color: var(--bronze-dim);
-  }
-
-  .client-item-name {
-    font-size: 13px;
-    font-weight: 400;
-    color: var(--cream);
-    margin-bottom: 3px;
-  }
-
-  .client-item-biz {
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 6px;
-  }
-
-  .client-item-tags {
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-  }
-
-  .tag {
-    font-size: 9px;
-    padding: 2px 7px;
-    border-radius: 20px;
-    font-weight: 500;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-  }
-
-  .tag-active { background: #1A2E1A; color: var(--done-text); }
-  .tag-trial  { background: #2A1F0A; color: #C89640; }
-  .tag-urgent { background: var(--urgent-bg); color: #C06060; }
-  .tag-new    { background: #1A1A2E; color: #8080C0; }
-
-  .sidebar-footer {
-    margin-top: auto;
-    padding: 20px 24px;
-    border-top: 1px solid var(--border);
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .add-client-btn {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 16px;
-    margin: 8px 12px;
-    border-radius: 8px;
-    border: 1px dashed var(--border);
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--muted);
-    background: transparent;
-    transition: all 0.2s;
-    width: calc(100% - 24px);
-    font-family: 'DM Sans', sans-serif;
-  }
-  .add-client-btn:hover { border-color: var(--bronze-dim); color: var(--bronze); }
-
-  /* ── MAIN ── */
-  .main {
-    flex: 1;
-    overflow-y: auto;
-    padding: 40px 48px;
-    max-width: 900px;
-  }
-
-  .view { display: none; animation: fadeIn 0.3s ease; }
-  .view.active { display: block; }
-
-  @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
-
-  /* ── CLIENT HEADER ── */
-  .client-header {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    margin-bottom: 32px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .client-title {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 42px;
-    font-weight: 300;
-    line-height: 1.1;
-    color: var(--cream);
-    margin-bottom: 6px;
-  }
-
-  .client-biz-name {
-    font-size: 13px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    margin-bottom: 12px;
-  }
-
-  .client-meta {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-
-  .meta-pill {
-    font-size: 11px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    color: var(--muted);
-  }
-
-  .meta-pill.highlight {
-    border-color: var(--bronze-dim);
-    color: var(--bronze);
-    background: rgba(166,124,60,0.08);
-  }
-
-  .client-rate {
-    text-align: right;
-  }
-
-  .rate-amount {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 36px;
-    font-weight: 400;
-    color: var(--bronze);
-    line-height: 1;
-  }
-
-  .rate-label {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  /* ── TLDR CARD ── */
-  .tldr-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 24px;
-    margin-bottom: 24px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .tldr-card::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: var(--bronze);
-    border-radius: 3px 0 0 3px;
-  }
-
-  .tldr-title {
-    font-size: 9px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    color: var(--bronze);
-    text-transform: uppercase;
-    margin-bottom: 12px;
-  }
-
-  .tldr-text {
-    font-size: 14px;
-    line-height: 1.7;
-    color: rgba(240,235,224,0.8);
-  }
-
-  /* ── SECTION ── */
-  .section { margin-bottom: 32px; }
-
-  .section-title {
-    font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    text-transform: uppercase;
-    margin-bottom: 14px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .section-title::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-
-  /* ── STATUS GRID ── */
-  .status-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-
-  .status-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px 18px;
-  }
-
-  .status-card-label {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-  }
-
-  .status-card-value {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--cream);
-    line-height: 1.2;
-  }
-
-  .status-card-sub {
-    font-size: 11px;
-    color: var(--muted);
-    margin-top: 3px;
-  }
-
-  /* ── TASKS ── */
-  .task-list { display: flex; flex-direction: column; gap: 6px; }
-
-  .task {
-    display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 16px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .task:hover { border-color: var(--bronze-dim); }
-
-  .task.urgent {
-    background: var(--urgent-bg);
-    border-color: var(--urgent);
-  }
-
-  .task.done {
-    background: var(--done);
-    border-color: #2A4A2A;
-    opacity: 0.6;
-  }
-
-  .task-check {
-    width: 16px;
-    height: 16px;
-    min-width: 16px;
-    border-radius: 4px;
-    border: 1px solid var(--border);
-    margin-top: 1px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    transition: all 0.2s;
-  }
-
-  .task.done .task-check {
-    background: var(--done);
-    border-color: var(--done-text);
-    color: var(--done-text);
-  }
-
-  .task.urgent .task-check { border-color: var(--urgent); }
-
-  .task-content { flex: 1; }
-
-  .task-name {
-    font-size: 13px;
-    color: var(--cream);
-    margin-bottom: 2px;
-    line-height: 1.4;
-  }
-
-  .task.done .task-name { text-decoration: line-through; color: var(--muted); }
-
-  .task-detail {
-    font-size: 11px;
-    color: var(--muted);
-  }
-
-  .task-badge {
-    font-size: 9px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .badge-urgent { background: var(--urgent-bg); color: #C06060; border: 1px solid var(--urgent); }
-  .badge-hourly { background: #1A1A0F; color: #A0902A; border: 1px solid #3A3010; }
-  .badge-monthly { background: #0F1A1F; color: #4A8AA0; border: 1px solid #1A3040; }
-  .badge-done { background: var(--done); color: var(--done-text); }
-
-  /* ── NOTES ── */
-  .notes-area {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 20px;
-  }
-
-  .notes-area textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--cream);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 13px;
-    line-height: 1.7;
-    resize: none;
-    min-height: 120px;
-    opacity: 0.7;
-  }
-
-  .notes-area textarea::placeholder { color: var(--muted); }
-
-  /* ── COMMS ── */
-  .comms-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .comms-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 16px;
-  }
-
-  .comms-card-label { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-  .comms-card-value { font-size: 13px; color: var(--cream); }
-
-  /* ── DASHBOARD ── */
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-
-  .dash-card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 20px 24px;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .dash-card:hover { border-color: var(--bronze-dim); transform: translateY(-1px); }
-
-  .dash-card-client {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 24px;
-    font-weight: 300;
-    color: var(--cream);
-    margin-bottom: 4px;
-  }
-
-  .dash-card-biz {
-    font-size: 11px;
-    color: var(--muted);
-    margin-bottom: 16px;
-  }
-
-  .dash-card-stats {
-    display: flex;
-    gap: 16px;
-  }
-
-  .dash-stat { flex: 1; }
-  .dash-stat-val { font-size: 18px; font-weight: 400; color: var(--bronze); font-family: 'Cormorant Garamond', serif; }
-  .dash-stat-lbl { font-size: 10px; color: var(--muted); margin-top: 2px; }
-
-  .dash-urgents {
-    display: flex;
-    gap: 6px;
-    margin-top: 14px;
-    flex-wrap: wrap;
-  }
-
-  .dash-urgent-pill {
-    font-size: 10px;
-    padding: 3px 10px;
-    border-radius: 20px;
-    background: var(--urgent-bg);
-    color: #C06060;
-    border: 1px solid var(--urgent);
-  }
-
-  /* ── HEADER HOME ── */
-  .home-header {
-    margin-bottom: 36px;
-  }
-
-  .home-greeting {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 48px;
-    font-weight: 300;
-    color: var(--cream);
-    line-height: 1.1;
-    margin-bottom: 8px;
-  }
-
-  .home-sub {
-    font-size: 13px;
-    color: var(--muted);
-  }
-
-  .income-bar {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    padding: 20px 24px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    margin-bottom: 32px;
-  }
-
-  .income-item { flex: 1; text-align: center; }
-  .income-val {
-    font-family: 'Cormorant Garamond', serif;
-    font-size: 32px;
-    font-weight: 400;
-    color: var(--bronze);
-    line-height: 1;
-  }
-  .income-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
-  .income-divider { width: 1px; height: 40px; background: var(--border); }
-
-  /* scrollbar */
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+:root {
+  --bg:#0C0C0A;--surface:#131311;--card:#1A1A17;--border:#252520;--border2:#2E2E28;
+  --bronze:#A67C3C;--bronze-d:#6B5025;--bronze-l:rgba(166,124,60,0.12);
+  --cream:#F0EBE0;--cream-d:#C8C0B0;--muted:#5A5850;--muted2:#3A3830;
+  --green:#4E6F4D;--green-l:rgba(78,111,77,0.15);--sage:#7A9B74;
+  --mauve:#C0A3B6;--mauve-l:rgba(192,163,182,0.12);
+  --teal:#2A7A8C;--teal-l:rgba(42,122,140,0.15);
+  --urgent:#8B3030;--urgent-l:rgba(139,48,48,0.12);
+  --done:#2A4A2A;--done-t:#6A9E6A;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--cream);font-family:'DM Sans',sans-serif;font-weight:300;}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:0.5;}
+.app{display:grid;grid-template-columns:240px 1fr;height:100vh;position:relative;z-index:1;}
+
+/* SIDEBAR */
+.sidebar{background:var(–surface);border-right:1px solid var(–border);display:flex;flex-direction:column;overflow-y:auto;scrollbar-width:none;}
+.sidebar::-webkit-scrollbar{display:none;}
+.sidebar-header{padding:28px 20px 20px;border-bottom:1px solid var(–border);flex-shrink:0;}
+.studio-name{font-family:‘Cormorant Garamond’,serif;font-size:24px;font-weight:400;color:var(–cream);letter-spacing:0.04em;margin-bottom:2px;}
+.studio-sub{font-size:9px;font-weight:400;letter-spacing:0.28em;color:var(–bronze);text-transform:uppercase;}
+.nav-section{padding:16px 20px 6px;font-size:8.5px;font-weight:500;letter-spacing:0.22em;color:var(–muted);text-transform:uppercase;}
+.nav-item{margin:1px 10px;padding:10px 14px;border-radius:8px;cursor:pointer;transition:all 0.18s;border:1px solid transparent;display:flex;align-items:center;gap:10px;}
+.nav-item:hover{background:var(–card);border-color:var(–border);}
+.nav-item.active{background:var(–card);border-color:var(–border2);}
+.nav-item.active .nav-dot{background:var(–bronze);}
+.nav-dot{width:6px;height:6px;border-radius:50%;background:var(–muted2);flex-shrink:0;transition:all 0.18s;}
+.nav-label{font-size:12.5px;font-weight:400;color:var(–cream);margin-bottom:1px;}
+.nav-sub{font-size:10px;color:var(–muted);}
+.nav-badge{margin-left:auto;font-size:9px;padding:2px 7px;border-radius:20px;font-weight:500;flex-shrink:0;}
+.badge-trial{background:rgba(166,124,60,0.15);color:var(–bronze);}
+.badge-urgent{background:var(–urgent-l);color:#C06060;}
+.badge-new{background:var(–teal-l);color:var(–teal);}
+.sidebar-income{margin:10px;padding:14px;background:var(–card);border:1px solid var(–border);border-radius:10px;}
+.income-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+.income-row:last-child{margin-bottom:0;}
+.income-label{font-size:10px;color:var(–muted);}
+.income-val{font-family:‘Cormorant Garamond’,serif;font-size:18px;color:var(–bronze);}
+.income-divider{height:0.5px;background:var(–border);margin:8px 0;}
+.sidebar-footer{margin-top:auto;padding:16px 20px;border-top:1px solid var(–border);font-size:10px;color:var(–muted);flex-shrink:0;line-height:1.6;}
+
+/* MAIN */
+.main{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:var(–border) transparent;}
+.main::-webkit-scrollbar{width:3px;}
+.main::-webkit-scrollbar-thumb{background:var(–border2);border-radius:3px;}
+.view{display:none;}
+.view.active{display:block;animation:fadeUp 0.28s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* PAGE HEADER */
+.page-header{padding:36px 44px 24px;border-bottom:1px solid var(–border);display:flex;align-items:flex-start;justify-content:space-between;gap:20px;}
+.page-title{font-family:‘Cormorant Garamond’,serif;font-size:40px;font-weight:300;color:var(–cream);line-height:1.05;margin-bottom:5px;}
+.page-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.meta-chip{font-size:10px;padding:3px 10px;border-radius:20px;border:1px solid var(–border2);color:var(–muted);}
+.meta-chip.hi{border-color:var(–bronze-d);color:var(–bronze);background:var(–bronze-l);}
+.rate-display{text-align:right;}
+.rate-num{font-family:‘Cormorant Garamond’,serif;font-size:38px;font-weight:400;color:var(–bronze);line-height:1;}
+.rate-sub{font-size:11px;color:var(–muted);margin-top:3px;}
+
+/* CONTENT */
+.content-area{padding:28px 44px 60px;}
+.tldr{background:var(–card);border:1px solid var(–border);border-radius:12px;padding:20px 22px;margin-bottom:24px;position:relative;overflow:hidden;}
+.tldr::before{content:’’;position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(–bronze),var(–mauve));border-radius:3px 0 0 3px;}
+.tldr-label{font-size:9px;font-weight:500;letter-spacing:0.22em;color:var(–bronze);text-transform:uppercase;margin-bottom:10px;}
+.tldr-text{font-size:13.5px;line-height:1.75;color:rgba(240,235,224,0.75);}
+.section{margin-bottom:28px;}
+.section-title{font-size:9.5px;font-weight:500;letter-spacing:0.22em;color:var(–muted);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:12px;}
+.section-title::after{content:’’;flex:1;height:1px;background:var(–border);}
+.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
+.stat-card{background:var(–card);border:1px solid var(–border);border-radius:10px;padding:16px 18px;}
+.stat-label{font-size:9.5px;color:var(–muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+.stat-val{font-family:‘Cormorant Garamond’,serif;font-size:24px;font-weight:400;color:var(–cream);line-height:1.1;}
+.stat-sub{font-size:10.5px;color:var(–muted);margin-top:2px;}
+
+/* TASKS */
+.task-list{display:flex;flex-direction:column;gap:6px;}
+.task{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;background:var(–card);border:1px solid var(–border);border-radius:9px;cursor:pointer;transition:all 0.18s;}
+.task:hover{border-color:var(–border2);}
+.task.urgent{background:var(–urgent-l);border-color:rgba(139,48,48,0.3);cursor:default;}
+.task.done{opacity:0.45;}
+.task-check{width:17px;height:17px;min-width:17px;border-radius:4px;border:1px solid var(–border2);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(–done-t);margin-top:1px;transition:all 0.18s;flex-shrink:0;}
+.task.done .task-check{background:var(–done);border-color:var(–done-t);}
+.task.urgent .task-check{border-color:var(–urgent);}
+.task-name{font-size:13px;color:var(–cream);margin-bottom:2px;line-height:1.4;}
+.task.done .task-name{text-decoration:line-through;color:var(–muted);}
+.task-detail{font-size:11px;color:var(–muted);line-height:1.4;}
+.task-right{margin-left:auto;flex-shrink:0;}
+.task-badge{font-size:9px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.tb-urgent{background:var(–urgent-l);color:#C06060;border:1px solid rgba(139,48,48,0.25);}
+.tb-soon{background:rgba(166,124,60,0.1);color:var(–bronze);}
+.tb-next{background:rgba(42,122,140,0.1);color:var(–teal);}
+.tb-done{background:var(–done);color:var(–done-t);}
+
+/* COMMS */
+.comms-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.comms-card{background:var(–card);border:1px solid var(–border);border-radius:10px;padding:14px 16px;}
+.comms-label{font-size:9.5px;color:var(–muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:5px;}
+.comms-val{font-size:12.5px;color:var(–cream);line-height:1.4;}
+.notes-box{background:var(–card);border:1px solid var(–border);border-radius:10px;padding:16px 18px;}
+.notes-box textarea{width:100%;background:transparent;border:none;outline:none;color:rgba(240,235,224,0.65);font-family:‘DM Sans’,sans-serif;font-size:12.5px;line-height:1.75;resize:none;min-height:100px;}
+
+/* POSTS */
+.posts-grid{display:flex;flex-direction:column;gap:10px;}
+.post-card{background:var(–card);border:1px solid var(–border);border-radius:12px;overflow:hidden;}
+.post-card.urgent-post{border-color:rgba(139,48,48,0.3);}
+.post-card.story-post{border-color:rgba(78,111,77,0.2);}
+.post-header{padding:12px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(–border);}
+.post-header.uh{background:var(–urgent-l);}
+.post-header.sh{background:var(–green-l);}
+.post-header.mh{background:var(–mauve-l);}
+.post-header.bh{background:var(–bronze-l);}
+.post-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0;}
+.pn-red{background:var(–urgent);color:white;}
+.pn-green{background:var(–green);color:white;}
+.pn-mauve{background:var(–mauve);color:white;}
+.pn-bronze{background:var(–bronze);color:white;}
+.post-meta{flex:1;}
+.post-time{font-size:11.5px;font-weight:500;color:var(–cream);margin-bottom:1px;}
+.post-type{font-size:10px;color:var(–muted);}
+.post-type-badge{font-size:9px;padding:3px 9px;border-radius:20px;font-weight:500;margin-left:auto;flex-shrink:0;}
+.ptb-feed{background:var(–mauve-l);color:var(–mauve);}
+.ptb-story{background:var(–green-l);color:var(–sage);}
+.ptb-urgent{background:var(–urgent-l);color:#C06060;border:1px solid rgba(139,48,48,0.2);}
+.post-body{padding:14px 16px;}
+.post-caption{font-size:12.5px;line-height:1.75;color:rgba(240,235,224,0.75);margin-bottom:12px;white-space:pre-line;}
+.copy-btn{display:flex;align-items:center;gap:6px;background:var(–border);border:1px solid var(–border2);border-radius:7px;padding:7px 14px;font-size:10px;font-weight:500;letter-spacing:0.08em;color:var(–cream-d);cursor:pointer;transition:all 0.18s;font-family:‘DM Sans’,sans-serif;}
+.copy-btn:hover{background:var(–border2);border-color:var(–bronze-d);color:var(–cream);}
+.copy-btn.copied{background:var(–done);border-color:var(–done-t);color:var(–done-t);}
+.post-note{padding:8px 12px;border-radius:7px;font-size:11px;line-height:1.5;margin-top:8px;}
+.pn-visual{background:rgba(78,111,77,0.08);border-left:2px solid var(–sage);color:rgba(240,235,224,0.55);font-style:italic;}
+.pn-engagement{background:var(–bronze-l);border-left:2px solid var(–bronze);color:var(–bronze);}
+.time-marker{display:flex;align-items:center;gap:10px;margin:16px 0 10px;}
+.time-marker-line{flex:1;height:1px;background:var(–border);}
+.time-marker-label{font-size:9px;font-weight:500;letter-spacing:0.18em;color:var(–muted);text-transform:uppercase;white-space:nowrap;}
+
+/* DASHBOARD */
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+.dash-card{background:var(–card);border:1px solid var(–border);border-radius:12px;padding:20px 22px;cursor:pointer;transition:all 0.2s;}
+.dash-card:hover{border-color:var(–border2);transform:translateY(-1px);}
+.dash-card-name{font-family:‘Cormorant Garamond’,serif;font-size:26px;font-weight:300;color:var(–cream);margin-bottom:3px;}
+.dash-card-biz{font-size:11px;color:var(–muted);margin-bottom:14px;}
+.dash-stats{display:flex;gap:16px;}
+.dash-stat-val{font-family:‘Cormorant Garamond’,serif;font-size:20px;color:var(–bronze);}
+.dash-stat-lbl{font-size:9.5px;color:var(–muted);margin-top:2px;}
+.dash-urgents{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px;}
+.dash-up{font-size:9.5px;padding:3px 9px;border-radius:20px;background:var(–urgent-l);color:#C06060;border:1px solid rgba(139,48,48,0.2);}
+.dash-new{font-size:9.5px;padding:3px 9px;border-radius:20px;background:var(–teal-l);color:var(–teal);border:1px solid rgba(42,122,140,0.2);}
+.income-bar{background:var(–card);border:1px solid var(–border);border-radius:12px;padding:18px 22px;display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:28px;position:relative;overflow:hidden;}
+.income-bar::before{content:’’;position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(–green),var(–bronze),var(–mauve));}
+.ib-item{text-align:center;}
+.ib-val{font-family:‘Cormorant Garamond’,serif;font-size:30px;color:var(–bronze);line-height:1;margin-bottom:4px;}
+.ib-lbl{font-size:9px;color:var(–muted);letter-spacing:0.1em;text-transform:uppercase;}
+.ib-divider{width:1px;background:var(–border);margin:0 auto;height:36px;align-self:center;}
+.pillar-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.pillar-chip{background:var(–card);border:1px solid var(–border);border-radius:8px;padding:10px 12px;}
+.pillar-name{font-size:11px;font-weight:500;color:var(–cream);margin-bottom:2px;}
+.pillar-desc{font-size:10px;color:var(–muted);line-height:1.4;}
 </style>
+
 </head>
 <body>
 <div class="app">
-
-  <!-- ── SIDEBAR ── -->
-  <div class="sidebar">
-    <div class="sidebar-header">
-      <div class="logo">Magia</div>
-      <div class="logo-sub">Marketing Studio</div>
-    </div>
-
-    <div class="sidebar-section">Overview</div>
-    <div class="client-item active" onclick="showView('home', this)">
-      <div class="client-item-name">Dashboard</div>
-      <div class="client-item-biz">All accounts at a glance</div>
-    </div>
-
-    <div class="sidebar-section">Clients</div>
-
-    <div class="client-item" onclick="showView('michelle', this)">
-      <div class="client-item-name">Michelle Caballero</div>
-      <div class="client-item-biz">Heal Rejuvenation & Wellness</div>
-      <div class="client-item-tags">
-        <span class="tag tag-trial">30-day trial</span>
-        <span class="tag tag-urgent">Grand Opening</span>
-      </div>
-    </div>
-
-    <div class="client-item" onclick="showView('ana', this)">
-      <div class="client-item-name">Ana Campo-Jimenez</div>
-      <div class="client-item-biz">Aligned With Me Therapy</div>
-      <div class="client-item-tags">
-        <span class="tag tag-new">Onboarding</span>
-      </div>
-    </div>
-
-    <button class="add-client-btn">＋ Add client</button>
-
-    <div class="sidebar-footer">
-      Magia Marketing Studio<br>
-      mel.jardinesb@gmail.com
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="studio-name">Magia</div>
+    <div class="studio-sub">Marketing Studio</div>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="show('dashboard',this)">
+    <div class="nav-dot"></div>
+    <div><div class="nav-label">Dashboard</div><div class="nav-sub">All accounts</div></div>
+  </div>
+  <div class="nav-section">Clients</div>
+  <div class="nav-item" onclick="show('michelle',this)">
+    <div class="nav-dot"></div>
+    <div><div class="nav-label">Michelle Caballero</div><div class="nav-sub">HEAL Rejuvenation</div></div>
+    <span class="nav-badge badge-urgent">LIVE</span>
+  </div>
+  <div class="nav-item" onclick="show('grand',this)">
+    <div class="nav-dot"></div>
+    <div><div class="nav-label">Grand Opening Posts</div><div class="nav-sub">4/25 — tap to copy</div></div>
+    <span class="nav-badge badge-urgent">4/25</span>
+  </div>
+  <div class="nav-item" onclick="show('ana',this)">
+    <div class="nav-dot"></div>
+    <div><div class="nav-label">Ana Campo-Jimenez</div><div class="nav-sub">Aligned With Me</div></div>
+    <span class="nav-badge badge-new">New</span>
+  </div>
+  <div style="margin:16px 10px 8px;">
+    <div class="sidebar-income">
+      <div class="income-row"><span class="income-label">HEAL retainer</span><span class="income-val">$300</span></div>
+      <div class="income-row"><span class="income-label">AWMT retainer</span><span class="income-val">$200</span></div>
+      <div class="income-divider"></div>
+      <div class="income-row"><span class="income-label">Hourly (est.)</span><span class="income-val">$240</span></div>
+      <div class="income-divider"></div>
+      <div class="income-row"><span class="income-label">Month total</span><span class="income-val" style="color:var(--sage);">$740</span></div>
     </div>
   </div>
+  <div class="sidebar-footer">Melanie Jardines Bernal<br>mel.jardinesb@gmail.com<br>Magia Marketing Studio</div>
+</div>
 
-  <!-- ── MAIN ── -->
-  <div class="main">
+<div class="main">
 
-    <!-- ══ HOME DASHBOARD ══ -->
-    <div class="view active" id="view-home">
-      <div class="home-header">
-        <div class="home-greeting">Good work, Mel. ✶</div>
-        <div class="home-sub">Here's where everything stands across your accounts.</div>
+<!-- DASHBOARD -->
+
+<div class="view active" id="view-dashboard">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Good work, Mel. ✶</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:4px;">Saturday April 25, 2026 &nbsp;·&nbsp; Grand Opening Day</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="income-bar">
+      <div class="ib-item"><div class="ib-val">$500</div><div class="ib-lbl">Retainers</div></div>
+      <div class="ib-divider"></div>
+      <div class="ib-item"><div class="ib-val">2</div><div class="ib-lbl">Clients</div></div>
+      <div class="ib-divider"></div>
+      <div class="ib-item"><div class="ib-val">$240</div><div class="ib-lbl">Hourly est.</div></div>
+      <div class="ib-divider"></div>
+      <div class="ib-item"><div class="ib-val" style="color:var(--sage);">$740</div><div class="ib-lbl">Month total</div></div>
+    </div>
+    <div class="section-title">Client Accounts</div>
+    <div class="dash-grid">
+      <div class="dash-card" onclick="show('michelle',document.querySelectorAll('.nav-item')[1])">
+        <div class="dash-card-name">Michelle Caballero</div>
+        <div class="dash-card-biz">HEAL Rejuvenation &amp; Wellness · Palmetto Bay, FL</div>
+        <div class="dash-stats">
+          <div><div class="dash-stat-val">$300</div><div class="dash-stat-lbl">Monthly</div></div>
+          <div><div class="dash-stat-val">30d</div><div class="dash-stat-lbl">Trial</div></div>
+          <div><div class="dash-stat-val">$30/hr</div><div class="dash-stat-lbl">Hourly</div></div>
+        </div>
+        <div class="dash-urgents">
+          <span class="dash-up">&#9888; Grand Opening TODAY</span>
+          <span class="dash-up">&#9888; Founder closes tonight</span>
+        </div>
       </div>
-
-      <div class="income-bar">
-        <div class="income-item">
-          <div class="income-val">$500</div>
-          <div class="income-lbl">Monthly Retainers</div>
+      <div class="dash-card" onclick="show('ana',document.querySelectorAll('.nav-item')[3])">
+        <div class="dash-card-name">Ana Campo-Jimenez</div>
+        <div class="dash-card-biz">Aligned With Me Therapy · Miami, FL</div>
+        <div class="dash-stats">
+          <div><div class="dash-stat-val">$200</div><div class="dash-stat-lbl">Monthly</div></div>
+          <div><div class="dash-stat-val">IG+TT</div><div class="dash-stat-lbl">Platforms</div></div>
+          <div><div class="dash-stat-val">2/wk</div><div class="dash-stat-lbl">Per platform</div></div>
         </div>
-        <div class="income-divider"></div>
-        <div class="income-item">
-          <div class="income-val">2</div>
-          <div class="income-lbl">Active Clients</div>
-        </div>
-        <div class="income-divider"></div>
-        <div class="income-item">
-          <div class="income-val">$240</div>
-          <div class="income-lbl">Hourly Billed (Est.)</div>
-        </div>
-        <div class="income-divider"></div>
-        <div class="income-item">
-          <div class="income-val">$740</div>
-          <div class="income-lbl">Total Est. Month</div>
-        </div>
+        <div class="dash-urgents"><span class="dash-new">Onboarding pending</span></div>
       </div>
+    </div>
+    <div class="section-title">Today's Priorities</div>
+    <div class="task-list">
+      <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Arrive at HEAL by 12PM &mdash; you have full IG access today</div><div class="task-detail">Pull content from Alberto's shared folder &middot; Post all day</div></div><div class="task-right"><span class="task-badge tb-urgent">TODAY</span></div></div>
+      <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Post pricing windows at EXACTLY 2PM, 4PM, 5PM</div><div class="task-detail">2PM: 30% off first 25 &middot; 4PM: 25% off &middot; 5PM: 15% off</div></div><div class="task-right"><span class="task-badge tb-urgent">TIME-SENSITIVE</span></div></div>
+      <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Tag @uly_monster + @ashamae_sebera when they arrive at 4PM</div><div class="task-detail">Brand ambassadors 4&ndash;6PM &middot; Major content moment</div></div><div class="task-right"><span class="task-badge tb-urgent">4PM</span></div></div>
+      <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Raffle at 3PM &middot; Founder last call push in evening</div><div class="task-detail">$750 Salmon DNA + $200 Wellness Consult &middot; Founder rates close midnight</div></div><div class="task-right"><span class="task-badge tb-urgent">Tonight</span></div></div>
+    </div>
+  </div>
+</div>
 
-      <div class="section-title">Client Accounts</div>
-      <div class="dashboard-grid">
+<!-- MICHELLE -->
 
-        <div class="dash-card" onclick="showView('michelle', document.querySelectorAll('.client-item')[1])">
-          <div class="dash-card-client">Michelle Caballero</div>
-          <div class="dash-card-biz">Heal Rejuvenation & Wellness · Palmetto Bay, FL</div>
-          <div class="dash-card-stats">
-            <div class="dash-stat">
-              <div class="dash-stat-val">$300</div>
-              <div class="dash-stat-lbl">Monthly retainer</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-val">30-day</div>
-              <div class="dash-stat-lbl">Trial period</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-val">$30/hr</div>
-              <div class="dash-stat-lbl">Hourly rate</div>
-            </div>
-          </div>
-          <div class="dash-urgents">
-            <span class="dash-urgent-pill">⚠ Grand Opening 4/25</span>
-            <span class="dash-urgent-pill">⚠ Founder deadline tonight</span>
-          </div>
-        </div>
-
-        <div class="dash-card" onclick="showView('ana', document.querySelectorAll('.client-item')[2])">
-          <div class="dash-card-client">Ana Campo-Jimenez</div>
-          <div class="dash-card-biz">Aligned With Me Therapy · Miami, FL</div>
-          <div class="dash-card-stats">
-            <div class="dash-stat">
-              <div class="dash-stat-val">$200</div>
-              <div class="dash-stat-lbl">Monthly retainer</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-val">IG + TikTok</div>
-              <div class="dash-stat-lbl">Platforms</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-val">2/wk</div>
-              <div class="dash-stat-lbl">Posts per platform</div>
-            </div>
-          </div>
-          <div class="dash-urgents">
-            <span class="dash-urgent-pill" style="background:#0F0F1A;color:#8080C0;border-color:#2A2A4A;">Onboarding pending</span>
-          </div>
-        </div>
-
+<div class="view" id="view-michelle">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Michelle Caballero</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">HEAL Rejuvenation &amp; Wellness &middot; Palmetto Bay, FL</div>
+      <div class="page-meta">
+        <span class="meta-chip hi">30-day trial &middot; Started 4/21</span>
+        <span class="meta-chip">1099 Contractor</span>
+        <span class="meta-chip">Instagram</span>
+        <span class="meta-chip">Metricool pending</span>
       </div>
-
-      <div class="section-title">Urgent This Week</div>
+    </div>
+    <div class="rate-display">
+      <div class="rate-num">$300</div>
+      <div class="rate-sub">/ month</div>
+      <div class="rate-sub" style="color:var(--bronze);margin-top:2px;">+ $30/hr (8hr cap)</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="tldr">
+      <div class="tldr-label">TLDR</div>
+      <div class="tldr-text">Michelle is an APRN, FNP-BC who just opened HEAL Rejuvenation &amp; Wellness in Palmetto Bay. Grand opening is today 4/25 &mdash; Founder pricing closes tonight. You're her in-house 1099. She doesn't want agency energy. You have full IG access today. Alberto (media) uploads to shared folder &mdash; you pull and post. Goals: 10&ndash;15 new memberships + $90k/month. Top services: Memberships, Body Sculpting, Derm &amp; Peptides. Competitors: @rever_wellness (aspirational) + Restore Pinecrest (local franchise, no founder presence &mdash; your edge).</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Contract</div><div class="stat-val">Signed</div><div class="stat-sub">DocuSign &middot; 4/21/2026</div></div>
+      <div class="stat-card"><div class="stat-label">Monthly Goal</div><div class="stat-val">10&ndash;15</div><div class="stat-sub">New memberships &middot; $90k rev</div></div>
+      <div class="stat-card"><div class="stat-label">Hourly Budget</div><div class="stat-val">8 hrs</div><div class="stat-sub">$30/hr &middot; Pre-approved only</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">Grand Opening &mdash; Today 4/25</div>
       <div class="task-list">
-        <div class="task urgent">
-          <div class="task-check">!</div>
-          <div class="task-content">
-            <div class="task-name">Grand Opening — Heal Rejuvenation & Wellness</div>
-            <div class="task-detail">Saturday 4/25 · Arrive 30 min early · Alberto on-site · Capture Stories all day</div>
-          </div>
-          <span class="task-badge badge-urgent">4/25</span>
-        </div>
-        <div class="task urgent">
-          <div class="task-check">!</div>
-          <div class="task-content">
-            <div class="task-name">Founder pricing closes tonight — post goes live 4/25</div>
-            <div class="task-detail">Both W1 posts go live Saturday · Content calendar ready</div>
-          </div>
-          <span class="task-badge badge-urgent">Tonight</span>
-        </div>
-        <div class="task">
-          <div class="task-check"></div>
-          <div class="task-content">
-            <div class="task-name">Send May content calendar to Michelle for review</div>
-            <div class="task-detail">Attach HEAL_ContentCalendar_May2026_FINAL_v3.docx</div>
-          </div>
-          <span class="task-badge badge-monthly">This week</span>
-        </div>
-        <div class="task">
-          <div class="task-check"></div>
-          <div class="task-content">
-            <div class="task-name">Friday check-in call with Michelle — 1 hour</div>
-            <div class="task-detail">Calendar review · Wix scope · CRM setup · LeadAR/Metricool</div>
-          </div>
-          <span class="task-badge badge-monthly">Friday</span>
-        </div>
-        <div class="task">
-          <div class="task-check"></div>
-          <div class="task-content">
-            <div class="task-name">Send Elias A2P resubmission email</div>
-            <div class="task-detail">Confirm T&C page is live first · info@myleadar.com</div>
-          </div>
-          <span class="task-badge badge-urgent">ASAP</span>
-        </div>
-        <div class="task">
-          <div class="task-check"></div>
-          <div class="task-content">
-            <div class="task-name">Send Ana onboarding guide + confirm $200/month</div>
-            <div class="task-detail">PDF guide ready · Get text confirmation on rate</div>
-          </div>
-          <span class="task-badge badge-monthly">This week</span>
-        </div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Arrive 12PM &middot; Full IG access &middot; Post yourself all day</div><div class="task-detail">Pull from Alberto's shared folder &middot; Mix real-time clips + polished visuals</div></div><div class="task-right"><span class="task-badge tb-urgent">TODAY</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Ribbon cutting 2:30PM &middot; 2PM pricing window (30% off, first 25)</div><div class="task-detail">Post at EXACTLY 2PM &middot; Countdown sticker to 3PM</div></div><div class="task-right"><span class="task-badge tb-urgent">2PM</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Raffle 3PM &middot; MLD + Lipo Laser RF demo 3PM</div><div class="task-detail">$750 Salmon DNA session + $200 Wellness Consult &middot; Post live</div></div><div class="task-right"><span class="task-badge tb-urgent">3PM</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">4PM: @uly_monster + @ashamae_sebera &middot; Aerolase demo &middot; 25% off</div><div class="task-detail">Post pricing at exactly 4PM &middot; Tag both handles when guests arrive</div></div><div class="task-right"><span class="task-badge tb-urgent">4PM</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">5PM: HEAL Hydrofacial demo &middot; 15% off &middot; Final window</div><div class="task-detail">Post at exactly 5PM &middot; Countdown to 6PM</div></div><div class="task-right"><span class="task-badge tb-urgent">5PM</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">Evening: Founder pricing LAST CALL &middot; Closes midnight</div><div class="task-detail">RESTORE $179 &middot; RENEW $279 &middot; RADIATE $449 &middot; Countdown to midnight</div></div><div class="task-right"><span class="task-badge tb-urgent">Tonight</span></div></div>
       </div>
     </div>
-
-    <!-- ══ MICHELLE ══ -->
-    <div class="view" id="view-michelle">
-      <div class="client-header">
-        <div>
-          <div class="client-title">Michelle Caballero</div>
-          <div class="client-biz-name">Heal Rejuvenation & Wellness · Palmetto Bay, FL</div>
-          <div class="client-meta">
-            <span class="meta-pill highlight">30-day trial · Started 4/21/26</span>
-            <span class="meta-pill">1099 Contractor</span>
-            <span class="meta-pill">Instagram</span>
-            <span class="meta-pill">Metricool</span>
-          </div>
-        </div>
-        <div class="client-rate">
-          <div class="rate-amount">$300</div>
-          <div class="rate-label">/ month</div>
-          <div class="rate-label" style="margin-top:4px;color:var(--bronze);">+$30/hr (8hr cap)</div>
-        </div>
-      </div>
-
-      <div class="tldr-card">
-        <div class="tldr-title">TLDR</div>
-        <div class="tldr-text">
-          Michelle is an APRN, FNP-BC who just opened Heal Rejuvenation & Wellness in Palmetto Bay. Grand opening is Saturday 4/25 — same day Founder membership pricing closes. You're her in-house 1099 marketing coordinator. She doesn't want agency energy. She's organized, responsive, and moves fast. Contract signed 4/21. Paid after deliverables. Goal: 10-15 new memberships and $90k/month. Top services to push: Memberships, Body Sculpting, Derm & Peptides. Team: Alberto (media), Annette (MA/front desk), Jen (esthetician). Competitors: Rever Wellness (aspirational), Restore Pinecrest (local franchise).
-        </div>
-      </div>
-
-      <div class="status-grid">
-        <div class="status-card">
-          <div class="status-card-label">Contract Status</div>
-          <div class="status-card-value">Signed</div>
-          <div class="status-card-sub">DocuSign · 4/21/2026</div>
-        </div>
-        <div class="status-card">
-          <div class="status-card-label">Monthly Goal</div>
-          <div class="status-card-value">10–15</div>
-          <div class="status-card-sub">New memberships · $90k revenue</div>
-        </div>
-        <div class="status-card">
-          <div class="status-card-label">Hourly Budget</div>
-          <div class="status-card-value">8 hrs</div>
-          <div class="status-card-sub">$30/hr · Pre-approved only</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Active Tasks</div>
-        <div class="task-list">
-          <div class="task urgent" onclick="toggleTask(this)">
-            <div class="task-check">!</div>
-            <div class="task-content">
-              <div class="task-name">Grand Opening coverage — Saturday 4/25</div>
-              <div class="task-detail">Arrive early · Exterior, interior, team, client arrivals, demos, milestone moment, Stories all day</div>
-            </div>
-            <span class="task-badge badge-urgent">4/25</span>
-          </div>
-          <div class="task urgent" onclick="toggleTask(this)">
-            <div class="task-check">!</div>
-            <div class="task-content">
-              <div class="task-name">Story sequence — run all day 4/25</div>
-              <div class="task-detail">Morning: teaser + countdown · Midday: space BTS · Afternoon: demo teasers · Evening: Founder urgency</div>
-            </div>
-            <span class="task-badge badge-urgent">4/25</span>
-          </div>
-          <div class="task urgent" onclick="toggleTask(this)">
-            <div class="task-check">!</div>
-            <div class="task-content">
-              <div class="task-name">Ribbon cutting 2:30PM · Pricing windows: 2-3PM 30% · 4-5PM 25% · 5-6PM 15%</div>
-              <div class="task-detail">Post each pricing window at the START of each hour · Build urgency as day goes on</div>
-            </div>
-            <span class="task-badge badge-urgent">4/25</span>
-          </div>
-          <div class="task urgent" onclick="toggleTask(this)">
-            <div class="task-check">!</div>
-            <div class="task-content">
-              <div class="task-name">Founder pricing LAST CALL story — push hard in evening</div>
-              <div class="task-detail">This closes tonight · Countdown sticker · DM prompt · Swipe up to book</div>
-            </div>
-            <span class="task-badge badge-urgent">Tonight</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Send May content calendar for review</div>
-              <div class="task-detail">HEAL_ContentCalendar_May2026_FINAL_v3.docx · 8 posts with full captions</div>
-            </div>
-            <span class="task-badge badge-monthly">This week</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Send Elias A2P resubmission email</div>
-              <div class="task-detail">Confirm T&C page is fully live first · info@myleadar.com</div>
-            </div>
-            <span class="task-badge badge-urgent">ASAP</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Friday check-in call — 1 hour</div>
-              <div class="task-detail">Calendar review · Wix scope · CRM/LeadAR setup · Metricool access</div>
-            </div>
-            <span class="task-badge badge-monthly">Friday</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Finish service menu in Canva</div>
-              <div class="task-detail">HTML version ready · Canva brand kit loaded · Use as layout blueprint</div>
-            </div>
-            <span class="task-badge badge-hourly">~2-3 hrs</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Wix website updates</div>
-              <div class="task-detail">Waiting on domain transfer · Photos + branding alignment · 4-5 hrs @ $30/hr</div>
-            </div>
-            <span class="task-badge badge-hourly">~4-5 hrs</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Set up Metricool + load May calendar</div>
-              <div class="task-detail">Waiting on Michelle's access invite · All captions ready to load</div>
-            </div>
-            <span class="task-badge badge-monthly">Next week</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Monthly report template — due by 5th</div>
-              <div class="task-detail">Social: engagement, reach, growth · SEO/Google · Leads via LeadAR</div>
-            </div>
-            <span class="task-badge badge-monthly">By May 5th</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Comms & Access</div>
-        <div class="comms-grid">
-          <div class="comms-card">
-            <div class="comms-card-label">Email</div>
-            <div class="comms-card-value">info@healingcornerco.com</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Preferred Channel</div>
-            <div class="comms-card-value">Email / Text · Weekly check-ins</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Website</div>
-            <div class="comms-card-value">healingcornerco.com (Wix)</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Instagram</div>
-            <div class="comms-card-value">@healingcornerco</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Scheduling Tool</div>
-            <div class="comms-card-value">Metricool · Access pending</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">CRM</div>
-            <div class="comms-card-value">LeadAR via Aesthetic Record</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Notes</div>
-        <div class="notes-area">
-          <textarea placeholder="Add notes about Michelle here...">GRAND OPENING 4/25 — KEY DETAILS:
-- Ribbon Cutting: 2:30PM
-- LIVE DEMOS: 4PM MLD + Lipo Laser RF (15min) · 5PM HEAL Hydrofacial (30min) · Aerolase ~3PM (pending)
-- GIVEAWAYS: Salmon DNA session ($750) + Wellness Consult ($200) — appt required
-- EVENT PRICING: 2-3PM 30% off (first 25) · 4-5PM 25% off · 5-6PM 15% off
-- LAST CALL: Founder member rates close tonight
-- FREEBIES: 30 organic juices + protein snacks + sourdough + charcuterie + flower bar
-- STORY SCHEDULE: Morning=teaser/countdown · Midday=space BTS · Afternoon=demo teasers · Evening=urgency
-- YOUR ROLE: Story posting/sequencing · Captions · Engagement (polls, questions, countdowns)
-- ALBERTO ROLE: Teaser reel (Michelle speaking + B-roll) — he's lead creative
-- TONE: Elevated, clean, inviting — luxury wellness with excitement
-
-GENERAL NOTES:
-- She doesn't want agency energy — present yourself as in-house
-- Alberto is her media person — coordinate, don't duplicate
-- Wix + Squarespace domain — wait for transfer
-- LeadAR A2P rejected — Privacy Policy + T&C updated, resubmit to Elias
-- Company Gmail (info@) for all content comms
-- Approval turnaround: 48 hours on content calendar
-- Content inspo: @rever_wellness — deep education, founder on camera</textarea>
-        </div>
+    <div class="section">
+      <div class="section-title">Ongoing Tasks</div>
+      <div class="task-list">
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Send May content calendar to Michelle for review</div><div class="task-detail">HEAL_ContentCalendar_May2026_FINAL_v3.docx &middot; 8 posts with full captions</div></div><div class="task-right"><span class="task-badge tb-soon">This week</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Service brochure / menu &mdash; 3 hrs logged @ $30/hr = $90</div><div class="task-detail">Verbally approved via text &middot; Canva buildout &middot; Count toward 8hr cap</div></div><div class="task-right"><span class="task-badge tb-soon">Logged</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Web support (Wix + compliance) &mdash; 3 hrs logged @ $30/hr = $90</div><div class="task-detail">Privacy Policy, T&amp;C, contact form A2P updates &middot; Count toward 8hr cap</div></div><div class="task-right"><span class="task-badge tb-soon">Logged</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">&#9888; Hourly cap status: 6 of 8 hrs used &mdash; 2 hrs remaining this month</div><div class="task-detail">Brochure 3hrs + Web support 3hrs = $180 billed &middot; Do NOT exceed 2 more hrs without approval</div></div><div class="task-right"><span class="task-badge tb-urgent">WATCH CAP</span></div></div>
+        <div class="task urgent"><div class="task-check">!</div><div><div class="task-name">&#128196; Send invoice after grand opening &mdash; after deliverables per contract</div><div class="task-detail">Retainer $300 + Brochure $90 + Web support $90 = $480 total &middot; Send week of April 28 &middot; Zelle/Venmo/ACH</div></div><div class="task-right"><span class="task-badge tb-urgent">Apr 28</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Friday check-in call &middot; 1 hour</div><div class="task-detail">Calendar review &middot; Wix scope &middot; CRM setup &middot; Metricool access</div></div><div class="task-right"><span class="task-badge tb-soon">Friday</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Wix website updates &mdash; remaining ~2 hrs available in cap</div><div class="task-detail">Waiting on domain transfer &middot; Get pre-approval before starting &middot; Only 2 hrs left this month</div></div><div class="task-right"><span class="task-badge tb-next">Next week</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Set up Metricool + load May calendar</div><div class="task-detail">Waiting on Michelle's access invite</div></div><div class="task-right"><span class="task-badge tb-next">Next week</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Monthly report &mdash; due by May 5th</div><div class="task-detail">Social: engagement, reach, growth &middot; SEO/Google &middot; Leads via LeadAR</div></div><div class="task-right"><span class="task-badge tb-next">May 5</span></div></div>
       </div>
     </div>
-
-    <!-- ══ ANA ══ -->
-    <div class="view" id="view-ana">
-      <div class="client-header">
-        <div>
-          <div class="client-title">Ana Campo-Jimenez</div>
-          <div class="client-biz-name">Aligned With Me Therapy · Cutler Bay / Miami, FL</div>
-          <div class="client-meta">
-            <span class="meta-pill highlight">Onboarding</span>
-            <span class="meta-pill">Best friend</span>
-            <span class="meta-pill">Instagram</span>
-            <span class="meta-pill">TikTok (new)</span>
-          </div>
-        </div>
-        <div class="client-rate">
-          <div class="rate-amount">$200</div>
-          <div class="rate-label">/ month</div>
-          <div class="rate-label" style="margin-top:4px;color:var(--muted);">Friends rate</div>
-        </div>
-      </div>
-
-      <div class="tldr-card">
-        <div class="tldr-title">TLDR</div>
-        <div class="tldr-text">
-          Ana is your bestie and a bilingual pediatric SLP (M.S. CCC-SLP) who founded Aligned With Me Therapy in Cutler Bay. She sees kids and wants to grow her social presence without the overly curated, perfect-feed look. Real human energy only. She's active on Instagram (@_alignedwithmetherapy, 481 followers, 91 posts) and needs TikTok built from scratch. Her highest performing content is when she's on camera. 2 posts/week per platform. Competitor to note: @rever_wellness for strategy inspiration. Keep it casual — she's your friend first, client second. No formal SOW needed, just text confirmation on rate.
-        </div>
-      </div>
-
-      <div class="status-grid">
-        <div class="status-card">
-          <div class="status-card-label">Contract Status</div>
-          <div class="status-card-value">Pending</div>
-          <div class="status-card-sub">Guide sent · Text confirmation needed</div>
-        </div>
-        <div class="status-card">
-          <div class="status-card-label">Instagram</div>
-          <div class="status-card-value">481</div>
-          <div class="status-card-sub">Followers · 91 posts · Active</div>
-        </div>
-        <div class="status-card">
-          <div class="status-card-label">TikTok</div>
-          <div class="status-card-value">TBD</div>
-          <div class="status-card-sub">Confirm if account exists</div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Content Strategy</div>
-        <div class="tldr-card" style="margin-bottom:12px;">
-          <div class="tldr-title">The AWMT Approach</div>
-          <div class="tldr-text">
-            Two recurring series: <strong style="color:var(--bronze)">The AWMT Edit</strong> (science-backed SLP education reels, Ana on camera) + <strong style="color:var(--bronze)">Notes from Ana</strong> (personal founder voice). Caption style = prose, not bullet lists. Instagram: upkeep + consistency. TikTok: growth-focused, talking head videos, toy reviews, bilingual content for Miami Spanish-speaking families. Ana films, you script + strategize. Cross-post reels to Ana's personal account for reach.
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Active Tasks</div>
-        <div class="task-list">
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Send Ana the onboarding guide PDF</div>
-              <div class="task-detail">Ana_Guide_Magia.pdf — friendly one-pager, not the formal SOW</div>
-            </div>
-            <span class="task-badge badge-monthly">This week</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Confirm $200/month rate via text</div>
-              <div class="task-detail">Keep it casual — just a quick "does $200/month work for you?"</div>
-            </div>
-            <span class="task-badge badge-monthly">This week</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Find out if she has a TikTok account</div>
-              <div class="task-detail">If not, set one up together — growth priority</div>
-            </div>
-            <span class="task-badge badge-monthly">Kickoff</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Get Canva access + brand kit</div>
-              <div class="task-detail">Logo, brand colors (teal, red, cream), fonts</div>
-            </div>
-            <span class="task-badge badge-monthly">Kickoff</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Get her filming comfort level</div>
-              <div class="task-detail">Totally fine on camera? Needs coaching? Will inform TikTok strategy</div>
-            </div>
-            <span class="task-badge badge-monthly">Kickoff</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Get Google Drive photo dump</div>
-              <div class="task-detail">Session moments, team shots, anything candid she already has</div>
-            </div>
-            <span class="task-badge badge-monthly">Kickoff</span>
-          </div>
-          <div class="task" onclick="toggleTask(this)">
-            <div class="task-check"></div>
-            <div class="task-content">
-              <div class="task-name">Build Month 1 content calendar</div>
-              <div class="task-detail">Template ready · Needs to be tailored to AWMT once onboarding complete</div>
-            </div>
-            <span class="task-badge badge-monthly">After kickoff</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Content Pillars</div>
-        <div class="comms-grid">
-          <div class="comms-card">
-            <div class="comms-card-label">SLP Education</div>
-            <div class="comms-card-value">Myth-busting, what SLPs actually do, therapy explained</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Parent Tips</div>
-            <div class="comms-card-value">Carry-over at home, red flags, bilingual tips</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Play-Based Moments</div>
-            <div class="comms-card-value">Session sneak peeks, toy reviews, Target hauls</div>
-          </div>
-          <div class="comms-card">
-            <div class="comms-card-label">Ana's Story</div>
-            <div class="comms-card-value">Bilingual SLP boss mom, why she started AWMT</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-title">Notes</div>
-        <div class="notes-area">
-          <textarea placeholder="Add notes about Ana here...">- She's your bestie — keep it warm and casual, no corporate energy
-- She hates overly curated feeds — real human content only
-- Bilingual content is a big opportunity (Miami Spanish-speaking families)
-- Her highest performing post: reading video (61 likes vs ~20 avg) — she needs to be on camera more
-- SLP niche on TikTok is strong — parents love "what your SLP is actually doing" content
-- She's a M.S. CCC-SLP with 7+ years experience and founded her own practice
-- AWMT is in Cutler Bay — kid-focused, play-based therapy
-- Instagram: @_alignedwithmetherapy</textarea>
-        </div>
+    <div class="section">
+      <div class="section-title">Comms &amp; Access</div>
+      <div class="comms-grid">
+        <div class="comms-card"><div class="comms-label">Email</div><div class="comms-val">info@healingcornerco.com</div></div>
+        <div class="comms-card"><div class="comms-label">Check-ins</div><div class="comms-val">Email / Text &middot; Weekly</div></div>
+        <div class="comms-card"><div class="comms-label">Website</div><div class="comms-val">healingcornerco.com (Wix)</div></div>
+        <div class="comms-card"><div class="comms-label">Instagram</div><div class="comms-val">@healingcornerco</div></div>
+        <div class="comms-card"><div class="comms-label">CRM</div><div class="comms-val">LeadAR (Aesthetic Record) &#10003;</div></div>
+        <div class="comms-card"><div class="comms-label">Scheduling</div><div class="comms-val">Metricool &middot; Access pending</div></div>
       </div>
     </div>
+    <div class="section">
+      <div class="section-title">Notes</div>
+      <div class="notes-box"><textarea>- In-house 1099 energy, not agency
+- Alberto (media) uploads to shared folder, Mel posts
+- Top inspo: @rever_wellness — deep education, founder on camera
+- Restore Pinecrest (competitor) has no founder presence — HEAL's edge is Michelle on camera
+- Content series: The HEAL Edit (education) + Notes from Michelle (founder voice)
+- Approval: 48 hours on content calendar
+- A2P/LeadAR fully resolved
+- Wix domain transfer pending</textarea></div>
+    </div>
+  </div>
+</div>
+
+<!-- GRAND OPENING POSTS -->
+
+<div class="view" id="view-grand">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Grand Opening Posts</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:4px;">Saturday April 25 &middot; Tap any button to copy caption instantly</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:11px;color:#C06060;font-weight:500;">&#9888; Post pricing windows</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">at EXACTLY 2PM &middot; 4PM &middot; 5PM</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="time-marker"><div class="time-marker-line"></div><div class="time-marker-label">Feed Posts</div><div class="time-marker-line"></div></div>
+    <div class="posts-grid">
+
+```
+  <div class="post-card urgent-post">
+    <div class="post-header uh">
+      <div class="post-num pn-red">F1</div>
+      <div class="post-meta"><div class="post-time">Grand Opening &mdash; Post at 2:30PM after ribbon cutting</div><div class="post-type">Feed Post &middot; Best photo from Alberto</div></div>
+      <span class="post-type-badge ptb-urgent">URGENT</span>
+    </div>
+    <div class="post-body">
+      <div class="post-caption" id="c-f1">Today, we open our doors. 🌿
+```
+
+HEAL Rejuvenation + Wellness was built for you — the woman who understands that investing in her well-being is not a luxury. It is a foundation.
+
+We are a sanctuary rooted in balance, designed for renewal, and grounded in the belief that lasting transformation begins with intentional care.
+
+We are so honored to welcome you into the HEAL family. Today is just the beginning. 💚
+
+📍 Palmetto Bay, Florida
+🔗 Book your first visit — link in bio
+
+#HEALwellness #GrandOpening #RejuvenationAndWellness #PalmettoBay #MiamiWellness #MedSpa #WellnessJourney #OpeningDay #HealingCorner</div>
+<button class="copy-btn" onclick="cp('c-f1',this)">⊛ Copy Caption</button>
+<div class="post-note pn-visual">📸 Best ribbon cutting photo or clinic space. Alberto’s strongest frame.</div>
+</div>
+</div>
+
+```
+  <div class="post-card urgent-post">
+    <div class="post-header uh">
+      <div class="post-num pn-red">F2</div>
+      <div class="post-meta"><div class="post-time">Founder Deadline &mdash; Post at 6PM</div><div class="post-type">Feed Post &middot; Branded graphic or Michelle photo</div></div>
+      <span class="post-type-badge ptb-urgent">URGENT</span>
+    </div>
+    <div class="post-body">
+      <div class="post-caption" id="c-f2">Last chance to become a Founding Member of HEAL. 🌿
+```
+
+Founder pricing closes tonight — your final opportunity to lock in exclusive rates as one of the first members of our community.
+
+RESTORE — $179/mo
+RENEW — $279/mo
+RADIATE — $449/mo
+
+Each membership includes preferred pricing on all treatments, priority booking, and a curated wellness experience designed around you — for as long as you remain a member.
+
+This rate is reserved for those who believed in HEAL from day one. After tonight, standard pricing applies.
+
+Book your complimentary consult — link in bio. 💚
+
+#HEALFounder #FounderMembership #WellnessMembership #HEALwellness #MiamiMedSpa #MemberBenefits #PalmettoBay</div>
+<button class="copy-btn" onclick="cp('c-f2',this)">⊛ Copy Caption</button>
+<div class="post-note pn-engagement">⏱ Add countdown sticker to Stories version pointing to midnight</div>
+</div>
+</div>
+
+```
+  <div class="time-marker"><div class="time-marker-line"></div><div class="time-marker-label">Stories &mdash; Run All Day</div><div class="time-marker-line"></div></div>
+
+  <div class="post-card story-post">
+    <div class="post-header sh"><div class="post-num pn-green">S1</div><div class="post-meta"><div class="post-time">Morning &mdash; Alberto's teaser reel</div><div class="post-type">Add countdown sticker to 2:30PM</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s1">Today is the day. 🌿 We'll see you at 2:30PM for the ribbon cutting — Palmetto Bay, FL.</div><button class="copy-btn" onclick="cp('c-s1',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card story-post">
+    <div class="post-header sh"><div class="post-num pn-green">S2</div><div class="post-meta"><div class="post-time">Morning &mdash; BTS final prep</div><div class="post-type">Poll: "Are you coming today?" Yes / On my way!</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s2">Final touches. 🌿 See you soon.</div><button class="copy-btn" onclick="cp('c-s2',this)">&#8859; Copy Caption</button><div class="post-note pn-visual">📸 Clinic setup, flower bar, food spread, team getting ready</div></div>
+  </div>
+
+  <div class="post-card urgent-post">
+    <div class="post-header uh"><div class="post-num pn-red">S3</div><div class="post-meta"><div class="post-time">2:00PM SHARP &mdash; Pricing window opens</div><div class="post-type">Countdown sticker to 3PM</div></div><span class="post-type-badge ptb-urgent">2PM EXACTLY</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s3">First 25 guests get 30% OFF all services — starting RIGHT NOW. 🌿 First come, first serve. This window closes at 3PM.</div><button class="copy-btn" onclick="cp('c-s3',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card">
+    <div class="post-header mh"><div class="post-num pn-mauve">S4</div><div class="post-meta"><div class="post-time">2:30PM &mdash; Ribbon cutting</div><div class="post-type">Post immediately as it happens</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s4">It's official. Welcome to HEAL. 🌿✨</div><button class="copy-btn" onclick="cp('c-s4',this)">&#8859; Copy Caption</button><div class="post-note pn-engagement">📍 Tag location immediately</div></div>
+  </div>
+
+  <div class="post-card">
+    <div class="post-header mh"><div class="post-num pn-mauve">S5</div><div class="post-meta"><div class="post-time">~3:00PM &mdash; Raffle time</div><div class="post-type">Question box: "What would you do with a $750 treatment?"</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s5">Raffle time 🎁 Prizes valued up to $750. Are you here? You could be our winner.</div><button class="copy-btn" onclick="cp('c-s5',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card urgent-post">
+    <div class="post-header uh"><div class="post-num pn-red">S6</div><div class="post-meta"><div class="post-time">4:00PM SHARP &mdash; Guests + Pricing + Demo</div><div class="post-type">Tag @uly_monster @ashamae_sebera &middot; Countdown to 5PM</div></div><span class="post-type-badge ptb-urgent">4PM EXACTLY</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s6">25% OFF starts NOW 🌿 And we just welcomed our special guests — @uly_monster + @ashamae_sebera are here. Live Aerolase demo at 4PM. Come through.</div><button class="copy-btn" onclick="cp('c-s6',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card">
+    <div class="post-header bh"><div class="post-num pn-bronze">S7</div><div class="post-meta"><div class="post-time">~5:00PM &mdash; Hydrofacial demo</div><div class="post-type">Poll: "Would you try this?" Yes / Tell me more</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s7">The HEAL Hydrofacial — live, right now. This is what your skin has been asking for. 🌿</div><button class="copy-btn" onclick="cp('c-s7',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card urgent-post">
+    <div class="post-header uh"><div class="post-num pn-red">S8</div><div class="post-meta"><div class="post-time">5:00PM SHARP &mdash; Final pricing window</div><div class="post-type">Countdown sticker to 6PM</div></div><span class="post-type-badge ptb-urgent">5PM EXACTLY</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s8">15% OFF — final pricing window of the night. One hour left. 🌿 Book in the next 60 minutes — link in bio.</div><button class="copy-btn" onclick="cp('c-s8',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card urgent-post">
+    <div class="post-header uh"><div class="post-num pn-red">S9</div><div class="post-meta"><div class="post-time">Evening &mdash; Founder last call</div><div class="post-type">Countdown to midnight &middot; DM prompt: "DM us FOUNDER"</div></div><span class="post-type-badge ptb-urgent">TONIGHT</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s9">Founder Member pricing closes at midnight tonight. This is your last chance to lock in your rate — RESTORE $179 · RENEW $279 · RADIATE $449. After tonight, standard pricing applies. Book your consult now — link in bio. 🌿</div><button class="copy-btn" onclick="cp('c-s9',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+  <div class="post-card story-post">
+    <div class="post-header sh"><div class="post-num pn-green">S10</div><div class="post-meta"><div class="post-time">End of night &mdash; Thank you</div><div class="post-type">Team photo or Michelle candid</div></div><span class="post-type-badge ptb-story">Story</span></div>
+    <div class="post-body"><div class="post-caption" id="c-s10">Day one. 🌿 Thank you to every single person who came through, shared our story, and believed in HEAL from the beginning. This is just the start. ✨</div><button class="copy-btn" onclick="cp('c-s10',this)">&#8859; Copy Caption</button></div>
+  </div>
+
+</div>
+```
 
   </div>
 </div>
 
-<script>
-  function showView(id, clickedEl) {
-    // Update views
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById('view-' + id).classList.add('active');
-    // Update sidebar
-    document.querySelectorAll('.client-item').forEach(el => el.classList.remove('active'));
-    if (clickedEl) clickedEl.classList.add('active');
-  }
+<!-- ANA -->
 
-  function toggleTask(el) {
-    if (el.classList.contains('urgent')) return; // don't toggle urgent ones
-    const isDone = el.classList.toggle('done');
-    const check = el.querySelector('.task-check');
-    check.textContent = isDone ? '✓' : '';
-    const badge = el.querySelector('.task-badge');
-    if (isDone) {
-      badge.className = 'task-badge badge-done';
-      badge.textContent = 'Done';
-    } else {
-      badge.className = 'task-badge badge-monthly';
-      badge.textContent = 'To do';
-    }
-  }
+<div class="view" id="view-ana">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Ana Campo-Jimenez</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:8px;">Aligned With Me Therapy &middot; Miami, FL</div>
+      <div class="page-meta">
+        <span class="meta-chip hi">Onboarding</span>
+        <span class="meta-chip">Best friend</span>
+        <span class="meta-chip">Instagram + TikTok</span>
+        <span class="meta-chip">Bilingual SLP</span>
+      </div>
+    </div>
+    <div class="rate-display">
+      <div class="rate-num">$200</div>
+      <div class="rate-sub">/ month</div>
+      <div class="rate-sub" style="color:var(--muted);margin-top:2px;">Friends rate</div>
+    </div>
+  </div>
+  <div class="content-area">
+    <div class="tldr">
+      <div class="tldr-label">TLDR</div>
+      <div class="tldr-text">Ana is your bestie and a bilingual pediatric SLP (M.S. CCC-SLP) who founded Aligned With Me Therapy in Miami. Real human energy only &mdash; she hates overly curated feeds. Active on IG (@_alignedwithmetherapy, 481 followers) and has TikTok. Her highest performing content is when she's on camera. 2 posts/week per platform. Biggest opportunity: bilingual content for Miami Spanish-speaking families. No one in her niche is doing this well.</div>
+    </div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Agreement</div><div class="stat-val">Pending</div><div class="stat-sub">Guide sent &middot; Text confirm needed</div></div>
+      <div class="stat-card"><div class="stat-label">Instagram</div><div class="stat-val">481</div><div class="stat-sub">Followers &middot; 91 posts &middot; Active</div></div>
+      <div class="stat-card"><div class="stat-label">TikTok</div><div class="stat-val">&#10003; Live</div><div class="stat-sub">Growth priority</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">May Content Strategy</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin-bottom:12px;">
+        <div style="font-size:11px;color:var(--teal);font-weight:500;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:8px;">Two Series + TikTok-First</div>
+        <div style="font-size:13px;color:rgba(240,235,224,0.7);line-height:1.7;"><strong style="color:var(--cream);">The AWMT Edit</strong> &mdash; SLP education, Ana on camera. TikTok-first, cross-post to IG.<br><strong style="color:var(--cream);">Notes from Ana</strong> &mdash; Personal founder voice. High trust, drives DMs.<br><strong style="color:var(--cream);">Bilingual content</strong> &mdash; Miami Spanish-speaking families. Biggest untapped opportunity.</div>
+      </div>
+      <div class="pillar-grid">
+        <div class="pillar-chip"><div class="pillar-name" style="color:var(--teal);">The AWMT Edit</div><div class="pillar-desc">SLP education reels &middot; Ana on camera</div></div>
+        <div class="pillar-chip"><div class="pillar-name" style="color:#C06060;">Notes from Ana</div><div class="pillar-desc">Founder voice &middot; Personal + converting</div></div>
+        <div class="pillar-chip"><div class="pillar-name" style="color:var(--sage);">Parent Tips</div><div class="pillar-desc">Practical tools for families</div></div>
+        <div class="pillar-chip"><div class="pillar-name" style="color:var(--teal);">Play-Based</div><div class="pillar-desc">Session peeks &middot; Toy reviews</div></div>
+        <div class="pillar-chip"><div class="pillar-name" style="color:#C06060;">Bilingual</div><div class="pillar-desc">Spanish families &middot; Dual language myths</div></div>
+        <div class="pillar-chip"><div class="pillar-name" style="color:var(--muted);">Behind the Scenes</div><div class="pillar-desc">Real practice life &middot; Candid Ana</div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Onboarding Tasks</div>
+      <div class="task-list">
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Send Ana the onboarding guide PDF</div><div class="task-detail">Ana_Guide_Magia.pdf &mdash; friendly one-pager, NOT the formal SOW</div></div><div class="task-right"><span class="task-badge tb-soon">This week</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Confirm $200/month via text</div><div class="task-detail">Keep it casual &mdash; she's your bestie first, client second</div></div><div class="task-right"><span class="task-badge tb-soon">This week</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Get Canva access + brand kit</div><div class="task-detail">Logo, brand colors (teal, red, cream), fonts</div></div><div class="task-right"><span class="task-badge tb-next">Kickoff</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Get filming comfort level</div><div class="task-detail">Fine on camera? Needs coaching? Informs TikTok strategy</div></div><div class="task-right"><span class="task-badge tb-next">Kickoff</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Get Google Drive photo dump</div><div class="task-detail">Session moments, team shots, any candid content she has</div></div><div class="task-right"><span class="task-badge tb-next">Kickoff</span></div></div>
+        <div class="task" onclick="toggleTask(this)"><div class="task-check"></div><div><div class="task-name">Send May content calendar for review</div><div class="task-detail">AWMT_ContentCalendar_May2026.docx &mdash; 8 posts, IG + TikTok, full captions</div></div><div class="task-right"><span class="task-badge tb-next">After kickoff</span></div></div>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-title">Notes</div>
+      <div class="notes-box"><textarea>- She's your bestie — warm and casual, no corporate energy
+- She hates perfect aesthetic feeds — real human content only
+- Ana on camera = her highest performing content (61 likes vs ~20 avg)
+- Bilingual content is the biggest Miami opportunity in her niche
+- TikTok is confirmed live — focus on growth
+- @_alignedwithmetherapy on IG · 481 followers · 91 posts
+- M.S. CCC-SLP · 7+ years experience · Founded AWMT herself</textarea></div>
+    </div>
+  </div>
+</div>
+
+</div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const v = document.getElementById('view-'+id);
+  if(v) v.classList.add('active');
+  if(el) el.classList.add('active');
+  document.querySelector('.main').scrollTop = 0;
+}
+function toggleTask(el) {
+  if(el.classList.contains('urgent')) return;
+  const done = el.classList.toggle('done');
+  el.querySelector('.task-check').textContent = done ? '&#10003;' : '';
+  const b = el.querySelector('.task-badge');
+  if(b){ b.className='task-badge '+(done?'tb-done':'tb-next'); b.textContent=done?'Done':'To do'; }
+}
+function cp(id, btn) {
+  const text = document.getElementById(id).innerText.trim();
+  const attempt = (text) => {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.cssText='position:fixed;opacity:0;top:0;left:0;';
+      document.body.appendChild(ta); ta.focus(); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      return true;
+    } catch(e){ return false; }
+  };
+  const success = () => {
+    btn.classList.add('copied'); btn.textContent='&#10003; Copied!';
+    setTimeout(()=>{ btn.classList.remove('copied'); btn.innerHTML='&#8859; Copy Caption'; }, 2500);
+  };
+  if(navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(success).catch(()=>{ if(attempt(text)) success(); });
+  } else { if(attempt(text)) success(); }
+}
 </script>
+
 </body>
 </html>
